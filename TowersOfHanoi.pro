@@ -9,5 +9,6 @@ SOURCES += \
 HEADERS += \
     board.h \
     disk.h \
+    node.h \
     queue.h \
     stack.h

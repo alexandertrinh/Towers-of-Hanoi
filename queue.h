@@ -7,9 +7,9 @@
 #include <string>
 #include <cstring>
 #include <sstream>
-#include "disk.h"
+#include "node.h"
 
-enum QUEUE_ERRORS { EMPTY_QUEUE, FULL_QUEUE, BAD_SIZE_QUEUE };
+enum QUEUE_ERRORS { EMPTY_QUEUE, BAD_SIZE_QUEUE };
 
 using namespace std;
 
@@ -17,22 +17,17 @@ template<typename T>
 class Queue {
 
     public:
-        Queue(size_t s = 10);
+        Queue();
         ~Queue();
         Queue(const Queue<T> &other);
         Queue<T>& operator=(const Queue<T> &other);
 
-        T peek();
-        bool full() const;
+        void enqueue(const T &data); //insert item into FIFO queue
+        T dequeue(); //remove element from other side of queue
         bool empty() const;
-        void clear();
-        size_t size() const;
-        size_t getCapacity() const;
-        void resize(size_t s = 10);
-        void enqueue(const T &d);
-        T dequeue();
-        std::string getName();
-        void assignQueueName();
+        T peek();
+        size_t size() const; //returns num of elements in queue
+
         Queue<T>& operator<<(const T &d);
         Queue<T>& operator>>(T &d);
 
@@ -48,41 +43,23 @@ class Queue {
         void nukem();
         void copy(const Queue<T> &other);
 
-        T *que;
-        int *que2;
-        size_t head, tail, mySize, capacity;
-        std::string name;
+        size_t mySize;
+        node<T> *head, *tail;
 
 };
 
 
 template<typename T>
-Queue<T>::Queue(size_t s) {
-    assignQueueName();
-    if(s + 1 < 3)
-        throw BAD_SIZE_QUEUE;
-    capacity = s;
-    que = new T[capacity+ 1];
-    que2 = new int[capacity+ 1];
-    //for(size_t i=0; i<capacity+1; ++i)
-    //    que[i] = T();
-    mySize = head = tail = 0;
+Queue<T>::Queue() {
+    mySize = 0;
+    head = tail = nullptr;
 }
 
 template<typename T>
 Queue<T>::~Queue() {
     nukem();
-    capacity = mySize = head = tail = 0;
-}
-
-template<>
-Queue<char*>::~Queue() {
-    for(size_t i = 0; i < capacity+1; ++i)
-        if(que[i] && que[i][0])
-            delete[] que[i];
-    delete [] que;
-    que = NULL;
-    capacity = mySize = head = tail = 0;
+    mySize = 0;
+    head = tail = nullptr;
 }
 
 template<typename T>
@@ -100,92 +77,69 @@ Queue<T>& Queue<T>::operator=(const Queue<T> &other) {
     return *this;
 }
 
-template<typename T>
-T Queue<T>::peek() {
-    return que[head];
-}
+/*
+ * Push a node to the back of the stack with T data into FIFO queue
+ * @param T &data This data with Data type T, will be stored in a node
+ */
 
 template<typename T>
-bool Queue<T>::full() const {
-    return (mySize == capacity);
+void Queue<T>::enqueue(const T &data) {
+    node<T> *newNode = new node<T>(data);
+    if (empty())
+        head = tail = newNode;
+    else {
+        tail->next = newNode;
+        tail = newNode;
+    }
+    ++mySize;
 }
 
+/*
+ * Removes the first node in the queue and returns the data value
+ * @return T data This is the data value at the beginnning of queue
+ */
+template<typename T>
+T Queue<T>::dequeue() {
+    if(empty())
+        throw EMPTY_QUEUE;
+    T temp = head->data; //get the data value into temp
+    node<T> *tempNode = head; //tempNode points to current head
+    head = head->next; //new head is the next
+
+    tempNode->next = nullptr; //delete the node's contents
+    tempNode->data = T();
+    //delete *tempNode;
+
+    --mySize;
+    return temp;
+}
+
+/*
+ * Is the queue empty or does it contain any nodes
+ * @return true or false
+ */
 template<typename T>
 bool Queue<T>::empty() const {
     return !mySize;
 }
 
+/*
+ * This function returns the top data value carried by the top node
+ * on the queue
+ * @return returns head->data The data value carried by the top node
+ */
 template<typename T>
-void Queue<T>::clear() {
-    tail = head = mySize = 0;
+T Queue<T>::peek() {
+    return head->data;
 }
 
+/*
+ * This function returns the number of elements currently in the queue
+ * @return retuns mySize
+ */
 template<typename T>
 size_t Queue<T>::size() const {
     return mySize;
-}
-
-template<typename T>
-size_t Queue<T>::getCapacity() const {
-    return capacity;
-}
-
-template<typename T>
-void Queue<T>::resize(size_t s) {
-    bool over = (s >= capacity);
-    size_t j = 0, endingCondition = over ? head + mySize : s + head;
-    T *temp = new T[s + 1];
-    for(size_t i = head; i < endingCondition; ++i, ++j) {
-        temp[j] = que[i%(capacity+1)];
-        que[i%(capacity+1)] = T();
-    }
-    delete [] que;
-    que = temp;
-    //mySize = tail = over ? mySize : s;
-    head = 0;
-    capacity = s;
-}
-
-template<>
-void Queue<char*>::resize(size_t s) {
-    bool over = (s >= capacity);
-    size_t j = 0, endingCondition = over ? head + mySize : s + head;
-    char **temp = new char*[s + 1];
-    for(size_t i=0; i<s+1; ++i)
-        temp[i] = nullptr;
-    for(size_t i = head; i < endingCondition; ++i, ++j) {
-        size_t len = strlen(que[i%(capacity+1)]);
-        temp[j] = new char[len];
-        strncpy(temp[j], que[i%(capacity+1)], len);
-    }
-    for(size_t i = 0; i < capacity+1; ++i)
-        if(que[i] && que[i][0])
-            delete [] que[i];
-    delete [] que;
-    que = temp;
-    mySize = tail = over ? mySize : s;
-    capacity = s;
-}
-
-template<typename T>
-void Queue<T>::enqueue(const T &d) {
-    if(full())
-        throw FULL_QUEUE;
-    que[tail] = d;
-    tail = (tail+1) % (capacity+1);
-    ++mySize;
-}
-
-template<typename T>
-T Queue<T>::dequeue() {
-    if(empty())
-        throw EMPTY_QUEUE;
-    //d = que[head];
-    T temp = que[head];
-    //head = (head+1) % (capacity+1);
-    --head;
-    --mySize;
-    return temp;
 }
 
 template<typename T>
@@ -202,44 +156,37 @@ Queue<T>& Queue<T>::operator>>(T &d) {
 
 template<typename T>
 void Queue<T>::nukem() {
-    for(size_t i = 0; i < capacity+1; ++i)
-        que[i] = T();
-    delete [] que;
-    que = NULL;
+    while(!empty()) {
+        dequeue();
+    }
 }
 
+/*
+ * This function makes a copy queue using this queue's data values
+ * @param Queue<T> other queue
+ */
 template<typename T>
 void Queue<T>::copy(const Queue<T> &other) {
-    mySize = other.mySize;
-    capacity = other.capacity;
-    head = other.head;
-    tail = other.tail;
-    que = new T[capacity + 1];
-    for(size_t i =  0; i < capacity + 1; ++i)
-        que[i] = other.que[i];
-}
-
-template<>
-void Queue<char*>::copy(const Queue<char*> &other) {
-    mySize = other.mySize;
-    capacity = other.capacity;
-    head = other.head;
-    tail = other.tail;
-    que = new char*[capacity + 1];
-    for(size_t i =  0; i < capacity + 1; ++i) {
-        que[i] = new char[strlen(other.que[i])];
-        strncpy(que[i], other.que[i], strlen(other.que[i]));
+    Queue<T> tempQueue = new Queue<T>();
+    T tempT;
+    for (size_t i = 0; i < this->mySize; i++) { //pop out every element in this queue
+        tempT = this->dequeue();
+        other.enqueue(tempT);
+        tempQueue.enqueue(tempT);
+    }
+    for (size_t i = 0; i < this->mySize; i++) { //reinsert the elements into this queue
+        this->enqueue(tempQueue.dequeue());
     }
 }
 
 template<typename  U>
 ostream& operator<<(ostream& out, const Queue<U> &q) {
     if(&out != &cout) {
-        out << "Queue capacity: " << q.capacity << endl
-            << "Queue size: " << q.mySize << endl;
+        out << "Queue size: " << q.mySize << endl;
     }
-    for(size_t i=q.head; i<q.mySize+q.head; ++i)
-        out << q.que[i%(q.capacity+1)] << endl;
+    for(size_t i=0; i<q.mySize; ++i) {
+        out << q.dequeue() << endl;
+    }
     return out;
 }
 
@@ -269,98 +216,6 @@ istream& operator>>(istream& in, Queue<U> &q) {
             q << data;
     }
     return in;
-}
-
-template<>
-istream& operator>>(istream& in, Queue<string> &q) {
-    q.nukem();
-    q.capacity = q.mySize = q.head = q.tail = 0;
-    if(&in != &cin) {
-        string line;
-        if(in.peek() == '\n')
-            in.ignore(32767, '\n');
-        getline(in, line, ':');
-        in >> q.capacity;
-        in.ignore(32767, '\n');
-        getline(in, line, ':');
-        in >> q.mySize;
-        in.ignore(32767, '\n');
-        q.que = new string[q.capacity+1];
-        for(size_t i=0; i<q.mySize; ++i, ++q.tail)
-            getline(in, q.que[i]);
-    } else {
-        cout << "Enter size: ";
-        in >> q.capacity;
-        cout << "Enter data: " << endl;
-        in.ignore(32767, '\n');
-        q.que = new string[q.capacity+1];
-        string data;
-        while(!q.full()) {
-            getline(in, data);
-            if(data.empty())
-                break;
-            q << data;
-        }
-    }
-    return in;
-}
-
-template<>
-istream& operator>>(istream& in, Queue<char*> &q) {
-    string line;
-    for(size_t i = 0; i < q.capacity+1; ++i)
-        if(q.que[i] && q.que[i][0])
-            delete[] q.que[i];
-    delete [] q.que;
-    q.que = NULL;
-    q.capacity = q.mySize = q.head = q.tail = 0;
-    if(&in != &cin) {
-        if(in.peek() == '\n')
-            in.ignore(32767, '\n');
-        getline(in, line, ':');
-        in >> q.capacity;
-        in.ignore(32767, '\n');
-        getline(in, line, ':');
-        in >> q.mySize;
-        in.ignore(32767, '\n');
-        q.que = new char*[q.capacity+1];
-        for(size_t i=0; i<q.mySize; ++i, ++q.tail) {
-            getline(in, line);
-            char* data = new char[line.length()];
-            strcpy(data, line.c_str());
-            q.que[i] = data;
-        }
-    } else {
-        cout << "Enter size: ";
-        in >> q.capacity;
-        cout << "Enter data: " << endl;
-        in.ignore(32767, '\n');
-        q.que = new char*[q.capacity+1];
-        while(!q.full()) {
-            getline(in, line);
-            if(line.empty())
-                break;
-            char* data = new char[line.length()];
-            strcpy(data, line.c_str());
-            q << data;
-        }
-    }
-    return in;
-}
-
-template<typename T>
-void Queue<T>::assignQueueName() {
-    static int i = 1;
-    std::ostringstream s;
-    s << "Queue " << i;
-    std::string query(s.str());
-    name = query;
-    i++;
-}
-
-template<typename T>
-std::string Queue<T>::getName() {
-    return name;
 }
 
 #endif // Queue_H

@@ -5,53 +5,12 @@
 #include <fstream>
 #include <cstdlib>
 #include <cstring>
+#include "node.h"
 
 enum STACK_ERRORS { FULL, EMPTY, BAD_SIZE };
 
 using namespace std;
 
-//************************ NODE ***************************
-template<typename T>
-struct node {
-    T data;
-    node* next;
-
-    node(const T &d);
-    ~node();
-    node(const node<T> &other);
-    node<T>& operator=(const node<T> &other);
-};
-
-
-template<typename T>
-node<T>::node(const T &d) {
-    data = d;
-    next = nullptr;
-}
-
-template<typename T>
-node<T>::~node() {
-    data = T();
-    next = nullptr;
-}
-
-template<typename T>
-node<T>::node(const node<T> &other) {
-    data = other.data;
-    next = nullptr;
-}
-
-template<typename T>
-node<T>& node<T>::operator=(const node<T> &other) {
-    if(this != &other) {
-        data = other.data;
-        next = nullptr;
-    }
-    return *this;
-}
-
-
-//*********************** STACK *****************************
 template<typename T>
 class Stack {
    public:
@@ -68,7 +27,7 @@ class Stack {
       int size() const;
       int capacity() const;
       void resize(int s);
-      std::string getName();
+      string getStackName(); //returns the given number of the stack
 
       Stack<T>& operator<<(const T &data);
       Stack<T>& operator>>(T &data);
@@ -82,13 +41,13 @@ class Stack {
       istream& operator>>(istream &in, Stack<U> &stck);
 
    private:
-      node<T> *tos;
-      int mySize, cap; //mySize is how many Disks inside stack, capacity is how much it can hold
+      node<T> *tos; //top of stack
+      int mySize, cap; //mySize is how many Nodes inside stack, capacity is how much it can hold
       string name;
 
       void copy(const Stack<T> &other);
       void nukem(node<T> *top);
-      void assignStackName();
+      void assignStackName(); //at initilization stack is given a specfic string name
 };
 
 
