@@ -62,9 +62,3 @@ bool is_ValidNum(string str) {
     else
         return false;
 }
-
-unsigned int countWords(string &str) {
-    vector<string> words;
-    istringstream iss(str);
-
-}
